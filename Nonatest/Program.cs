@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Nonalib;
+using System.Threading;
 
 namespace Nonatest
 {
@@ -13,7 +14,7 @@ namespace Nonatest
         {
             string[] constraingH = new string[]
             {
-                "8",
+/*                "8",
                 "4 12 3",
                 "2 1 14 1 2",
                 "1 1 15 1 1",
@@ -59,14 +60,34 @@ namespace Nonatest
                 "1 2 2 1 2 6 3",
                 "2 6 2 3 7",
                 "2 2 3 2",
-                "12 14"
+                "12 14"*/
+                "5",
+                "7",
+                "7",
+                "1 1 2 2",
+                "1 3 3",
+                "3 2 4",
+                "2 4 4",
+                "1 2 1",
+                "1 1 3 1",
+                "2 1 7",
+                "6 2",
+                "1 2 1",
+                "2 1 1 1 2",
+                "2 4 2 1",
+                "2 4 1 1 2 1",
+                "6 4 5",
+                "4 3 1 5",
+                "2 1 2 1 1 1",
+                "4 4 6",
+                "4"
             };
             int[][] constraintH = new int[constraingH.Count()][];
             for (int i = 0; i < constraingH.Count(); i++)
                 constraintH[i] = constraingH[i].Split(new char[] { ' ', ',' }).Select(x => int.Parse(x)).ToArray();
             String[] constraingV = new string[]
             {
-                "7 3",
+                /*"7 3",
                 "2 12 3",
                 "1 12 3",
                 "1 13 3 3",
@@ -112,7 +133,27 @@ namespace Nonatest
                 "6 1 2 1 1 1",
                 "3 2 2 1",
                 "1 2 2 2",
-                "10 1"
+                "10 1"*/
+                "5",
+                "6",
+                "3",
+                "3 2",
+                "2 2",
+                "4 3 2",
+                "2 6 2",
+                "2 2 1 1",
+                "4 2 3 1 2 1",
+                "3 1 3 5",
+                "4 1 3 2 1",
+                "3 2 3 4 2",
+                "6 3 1 2",
+                "4 4 1",
+                "3 2 3 1",
+                "2 4 4",
+                "6 2 2 1",
+                "3 5",
+                "2 2 1",
+                "2"
             };
             int[][] constraintV = new int[constraingV.Count()][];
             for (int i = 0; i < constraingV.Count(); i++)
@@ -154,11 +195,10 @@ namespace Nonatest
                         */
             Row[] rows = new Row[constraintH.Count()];
             Row r;
-            for (int i = 0; i < rows.Count(); i++)
+            Parallel.For(0, rows.Count(), (i) =>
             {
-                r = new Row(constraintV.Count(), constraintH[i]);
-                rows[i] = r;
-            }
+                rows[i] = new Row(constraintV.Count(), constraintH[i]);
+            });
             bool bIncomplete = true;
             int changes = 1;
             int iterations = 0;
@@ -166,20 +206,18 @@ namespace Nonatest
             {
                 iterations++;
                 changes = 0;
-                for (int i=0;i<rows.Count();i++)
-                {
-                    r = rows[i];
-                    changes += r.SimpleStep();
-                }
+                Parallel.For(0, rows.Count(), (i) =>
+                  {
+                      Interlocked.Add(ref changes, rows[i].SimpleStep());
+                  });
                 bIncomplete = false;
                 rows = Row.Transpose(constraintV, rows);
-                for (int i = 0; i < rows.Count(); i++)
-                {
-                    r = rows[i];
-                    changes += r.SimpleStep();
-                    if (!r.IsComplete())
-                        bIncomplete = true;
-                }
+                Parallel.For(0, rows.Count(), (i) =>
+                 {
+                     Interlocked.Add(ref changes, rows[i].SimpleStep());
+                     if (!rows[i].IsComplete())
+                         bIncomplete = true;
+                 });
                 rows = Row.Transpose(constraintH, rows);
             }
             if (changes == 0) Console.WriteLine("Stuck!");
