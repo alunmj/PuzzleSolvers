@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -169,8 +170,8 @@ namespace PinwheelLib
         }
         public static void Initialize(int[,] dotArray)
         {
-            width = (dotArray.GetUpperBound(0) + 1) / 2;
-            height = (dotArray.GetUpperBound(1) + 1) / 2;
+            width = 1 + (dotArray.GetUpperBound(0)) / 2;
+            height = 1 + (dotArray.GetUpperBound(1)) / 2;
             cells = new pwCell[width, height];
             for (int x = 0; x < width; x++)
                 for (int y = 0; y < height; y++)
@@ -189,6 +190,7 @@ namespace PinwheelLib
             for (int i = 0; i <= dotArray.GetUpperBound(0); i++)
                 for (int j = 0; j <= dotArray.GetUpperBound(1); j++)
                 {
+                    if (dotArray[i, j] == 0) continue;
                     Point centerPoint = new Point() { x = (float)i / 2.0f, y = (float)j / 2.0f };
                     pwCell c;
                     int il, ih, jl, jh;
@@ -199,7 +201,7 @@ namespace PinwheelLib
                     if (j % 2 == 0)
                         jh = jl = j / 2;
                     else
-                        jh = j + (jl = (j - 1) / 2);
+                        jh = 1 + (jl = (j - 1) / 2);
                     for (int ii = il; ii <= ih; ii++)
                         for (int ij = jl; ij <= jh; ij++)
                         {
@@ -222,24 +224,24 @@ namespace PinwheelLib
 
         public static void Dump()
         {
-            Console.Write('+');
+            Debug.Write('+');
             for (int i = 0; i < width; i++)
-                Console.Write("__");
-            Console.WriteLine();
+                Debug.Write("__");
+            Debug.WriteLine("");
             for (int j = 0; j < height; j++)
             {
-                Console.Write('|');
+                Debug.Write('|');
                 for (int i = 0; i < width; i++)
                 {
                     if (cells[i, j].IsBorder(directions.down))
-                        Console.Write('_');
+                        Debug.Write('_');
                     else
-                        Console.Write(' ');
+                        Debug.Write(' ');
                     if (cells[i, j].IsBorder(directions.right))
-                        Console.Write('|');
-                    else Console.Write(' ');
+                        Debug.Write('|');
+                    else Debug.Write(' ');
                 }
-                Console.WriteLine();
+                Debug.WriteLine("");
             }
         }
         public static void DumpFill()
@@ -249,13 +251,13 @@ namespace PinwheelLib
                 for (int i = 0; i < width; i++)
                 {
                     if (cells[i, j].filled)
-                        Console.Write("**");
+                        Debug.Write("**");
                     else if (cells[i, j].centerPoint != invalid)
-                        Console.Write("..");
+                        Debug.Write("..");
                     else
-                        Console.Write(" @");
+                        Debug.Write(" @");
                 }
-                Console.WriteLine();
+                Debug.WriteLine("");
             }
         }
         private static void copyBorders()
@@ -274,7 +276,7 @@ namespace PinwheelLib
                             directions oppside = (directions)((k + 2) % 4);
                             if (!newCell.IsBorder(oppside))
                             {
-                                Console.WriteLine($"Copying border from {cell.myPoint} to {opposite}.");
+                                Debug.WriteLine($"Copying border from {cell.myPoint} to {opposite}.");
                                 newCell.SetBorder(oppside);
                             }
                         }
@@ -298,7 +300,7 @@ namespace PinwheelLib
                         if (cell.centerPoint != newCell.centerPoint)
                             if (!cell.IsBorder(directions.right))
                             {
-                                Console.WriteLine($"Separating owned cells {cell.myPoint} and right");
+                                Debug.WriteLine($"Separating owned cells {cell.myPoint} and right");
                                 cell.SetBorder(directions.right);
                             }
                     }
@@ -312,7 +314,7 @@ namespace PinwheelLib
                         {
                             if (!cell.IsBorder(directions.down))
                             {
-                                Console.WriteLine($"Separating owned cells {cell.myPoint} and down");
+                                Debug.WriteLine($"Separating owned cells {cell.myPoint} and down");
                                 cell.SetBorder(directions.down);
                             }
                         }
@@ -353,7 +355,7 @@ namespace PinwheelLib
                 }
                 if (putativePoint != invalid)
                 {
-                    Console.WriteLine($"Setting cell at {cell.myPoint} to associate with {putativePoint}");
+                    Debug.WriteLine($"Setting cell at {cell.myPoint} to associate with {putativePoint}");
                     cell.centerPoint = putativePoint;
                     cell.filled = cells[(int)putativePoint.x, (int)putativePoint.y].filled;
                     Point oppSide = Symmetry(cell.myPoint, putativePoint);
@@ -388,7 +390,7 @@ namespace PinwheelLib
                 if (dirOut != directions.multi)
                 {
                     cell.associates = dirOut;
-                    Console.WriteLine($"Associating dead-end cell at {cell.myPoint} to direction {dirOut}");
+                    Debug.WriteLine($"Associating dead-end cell at {cell.myPoint} to direction {dirOut}");
                     changesThisPass++;
                 }
             }
