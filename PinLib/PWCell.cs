@@ -10,7 +10,7 @@ namespace PinwheelLib
     public class pwCell
     {
         public enum directions { up, right, down, left, none, multi };
-        static pwCell[,] cells;
+        public static pwCell[,] cells;
         static int changesThisPass;
         static int height, width;
         private bool[] border = new bool[4] { false, false, false, false };
@@ -59,6 +59,7 @@ namespace PinwheelLib
                 otherSide.border[(int)(((int)dir + 2) % 4)] = true;
         }
         public bool IsBorder(directions dir) { return border[(int)dir]; }
+        public bool IsFilled {  get { return filled; } }
         static void Create(int x, int y, char cell)
         {
             pwCell c = cells[x, y] = new pwCell();
