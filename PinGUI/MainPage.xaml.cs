@@ -9,6 +9,7 @@ using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Windows.UI;
 using Windows.UI.Input;
+using Windows.UI.Popups;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
@@ -29,7 +30,7 @@ namespace PinGUI
     public sealed partial class MainPage : Page
     {
         private const double squareSize = 25;
-        int[,] dotArray = new int[7,7];
+        int[,] dotArray = new int[7, 7];
         public MainPage()
         {
             this.InitializeComponent();
@@ -40,7 +41,7 @@ namespace PinGUI
             try
             {
                 int width = Convert.ToInt32(widthBox.Text);
-                dotArray = new int[width+width-1, dotArray.GetUpperBound(1)+1];
+                dotArray = new int[width + width - 1, dotArray.GetUpperBound(1) + 1];
                 blankCanvas.Width = squareSize * width;
             }
             catch (FormatException ex)
@@ -54,7 +55,7 @@ namespace PinGUI
             try
             {
                 int height = Convert.ToInt32(heightBox.Text);
-                dotArray = new int[dotArray.GetUpperBound(0) + 1, height+height-1];
+                dotArray = new int[dotArray.GetUpperBound(0) + 1, height + height - 1];
                 blankCanvas.Height = squareSize * height;
             }
             catch (FormatException ex) { }
@@ -62,8 +63,12 @@ namespace PinGUI
 
         private void blankCanvas_SizeChanged(object sender, SizeChangedEventArgs e)
         {
+            RedrawGrid();
+        }
+        private void RedrawGrid()
+        {
             PathGeometry grid = new PathGeometry();
-                        
+
             for (double x = 0; x <= blankCanvas.Width; x += squareSize)
             {
                 PathFigure fig = new PathFigure();
@@ -90,13 +95,13 @@ namespace PinGUI
         private Point RoundedPt(iPoint iPt)
         {
             Point error = new Point(-1, -1);
-            Point roundedPoint ;
+            Point roundedPoint;
 
             double halfSize = squareSize / 2.0;
 
             // Find nearest quarter square corner to the cursor.
             roundedPoint = new Point(
-                halfSize *(double)iPt.x,
+                halfSize * (double)iPt.x,
                 halfSize * (double)iPt.y);
 
             if ((roundedPoint.X <= 0.0 || roundedPoint.X >= blankCanvas.Width) ||
@@ -110,8 +115,8 @@ namespace PinGUI
 
         private void blankCanvas_PointerMoved(object sender, PointerRoutedEventArgs e)
         {
-            PointerPoint ptpt = e.GetCurrentPoint((UIElement) sender);
-            
+            PointerPoint ptpt = e.GetCurrentPoint((UIElement)sender);
+
             Point roundedPt = RoundedPt(FixedPt(ptpt.Position));
 
 
@@ -145,7 +150,7 @@ namespace PinGUI
                 y = (int)Math.Round(dPt.Y / halfSize)
             };
 
-            if (pt.x <= 0 || pt.y <= 0 || pt.x >= blankCanvas.Width || pt.y >= blankCanvas.Height)
+            if (pt.x <= 0 || pt.y <= 0 || pt.x >= width || pt.y >= height)
                 return error;
 
             return pt;
@@ -154,12 +159,15 @@ namespace PinGUI
         private void blankCanvas_PointerReleased(object sender, PointerRoutedEventArgs e)
         {
             PointerPoint ptpt = e.GetCurrentPoint((UIElement)sender);
-            Point roundedPt = RoundedPt(FixedPt(ptpt.Position));
+            iPoint wherePt = FixedPt(ptpt.Position);
 
-            iPoint wherePt = FixedPt(roundedPt);
             if (wherePt.x < 0 || wherePt.y < 0) return;
 
-            int color = dotArray[wherePt.x-1, wherePt.y-1];
+            Point roundedPt = RoundedPt(wherePt);
+
+            iPoint arrayPt = new iPoint { x = wherePt.x - 1, y = wherePt.y - 1 };
+
+            int color = dotArray[arrayPt.x, arrayPt.y];
             Ellipse newCircle;
             Point offsetPt;
             // If I did a custom control for the dots, I could do without all this hit-test malarkey, but this isn't that important.
@@ -172,9 +180,9 @@ namespace PinGUI
                     // Make sure there's no dot next to this one, because that would never work.
                     for (int i = -1; i < 2; i++)
                         for (int j = -1; j < 2; j++)
-                            if ((i + wherePt.x -1 >=0 && i+wherePt.x-1<=dotArray.GetUpperBound(0)) &&
-                                (j+wherePt.y-1>=0 && j+wherePt.y-1<=dotArray.GetUpperBound(1)) &&
-                                dotArray[i + wherePt.x - 1, j + wherePt.y - 1] != 0) return;
+                            if ((i + arrayPt.x >= 0 && i + arrayPt.x <= dotArray.GetUpperBound(0)) &&
+                                (j + arrayPt.y >= 0 && j + arrayPt.y <= dotArray.GetUpperBound(1)) &&
+                                dotArray[i + arrayPt.x, j + arrayPt.y] != 0) return;
                     newCircle = new Ellipse();
                     newCircle.Width = newCircle.Height = cursorEllipse.Width;
                     // New circle will be white with black border.
@@ -202,16 +210,90 @@ namespace PinGUI
                     }
                     break;
             }
-            dotArray[wherePt.x - 1, wherePt.y - 1] = color;
+            dotArray[arrayPt.x, arrayPt.y] = color;
         }
 
-        private void calcButton_Click(object sender, RoutedEventArgs e)
+        private async void calcButton_Click(object sender, RoutedEventArgs e)
         {
-            pwCell.Initialize(dotArray);
-            pwCell.Dump();
-            while (pwCell.Process() != 0) ;
-            pwCell.Dump();
-            pwCell.DumpFill();
+            GeometryGroup overgroup = new GeometryGroup();
+            GeometryGroup undergroup = new GeometryGroup();
+            PathGeometry grid = new PathGeometry();
+            overgroup.Children.Add(grid);
+            borders.Data = overgroup;
+            fillcells.Data = undergroup;
+
+            try
+            {
+                pwCell.Initialize(dotArray);
+                pwCell.Dump();
+                while (pwCell.Process() != 0)
+                {
+                    grid.Figures.Clear();
+                    undergroup.Children.Clear();
+
+                    for (int i = 0; i < pwCell.cells.GetUpperBound(0) + 1; i++)
+                        for (int j = 0; j < pwCell.cells.GetUpperBound(1) + 1; j++)
+                        {
+                            pwCell cell = pwCell.cells[i, j];
+                            double x = (i + 1.0) * squareSize;
+                            double y = (j + 1.0) * squareSize;
+                            if (cell.IsBorder(pwCell.directions.down))
+                            {
+                                PathFigure fig = new PathFigure();
+                                fig.StartPoint = new Point(x - squareSize, y);
+                                LineSegment pols = new LineSegment();
+                                pols.Point = new Point(x, y);
+                                fig.Segments.Add(pols);
+                                grid.Figures.Add(fig);
+                            }
+                            if (cell.IsBorder(pwCell.directions.right))
+                            {
+                                PathFigure fig = new PathFigure();
+                                fig.StartPoint = new Point(x, y - squareSize);
+                                LineSegment pols = new LineSegment();
+                                pols.Point = new Point(x, y);
+                                fig.Segments.Add(pols);
+                                grid.Figures.Add(fig);
+                            }
+                            if (cell.IsFilled)
+                            {
+                                RectangleGeometry rgeo = new RectangleGeometry();
+                                rgeo.Rect = new Rect(x - squareSize, y - squareSize, squareSize, squareSize);
+                                undergroup.Children.Add(rgeo);
+                            }
+                        }
+                }
+                pwCell.Dump();
+                pwCell.DumpFill();
+            }
+            catch (Exception ex)
+            {
+                MessageDialog dlg = new MessageDialog(ex.Message, "Error in calculate...");
+                await dlg.ShowAsync();
+            }
+        }
+
+        private void resetButton_Click(object sender, RoutedEventArgs e)
+        {
+            List<UIElement> deadList = new List<UIElement>();
+            foreach (var item in blankCanvas.Children)
+            {
+                Ellipse elly = item as Ellipse;
+                if (elly != null)
+                    if (String.IsNullOrEmpty(elly.Name))
+                        deadList.Add(item);
+            }
+            foreach (var item in deadList)
+                blankCanvas.Children.Remove(item);
+
+            for (int i = 0; i <= dotArray.GetUpperBound(0); i++)
+                for (int j = 0; j <= dotArray.GetUpperBound(1); j++)
+                    dotArray[i, j] = 0;
+
+            borders.Data = null;
+            fillcells.Data = null;
+
+            RedrawGrid();
         }
     }
 }

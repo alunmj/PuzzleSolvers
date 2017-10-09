@@ -16,14 +16,16 @@
                 <TextBlock HorizontalAlignment="Right" Margin="5" Width="47" Text="Height"/>
                 <TextBox x:Name="heightBox" Margin="5" HorizontalAlignment="Right" TextChanged="heightBox_TextChanged"></TextBox>
             </StackPanel>
-            <Canvas x:Name="blankCanvas" Width="100" Height="100" SizeChanged="blankCanvas_SizeChanged" PointerMoved="blankCanvas_PointerMoved" Background="Transparent" PointerEntered="blankCanvas_PointerEntered" PointerExited="blankCanvas_PointerExited" PointerReleased="blankCanvas_PointerReleased">
-                <Rectangle Stroke="#FF0D18F3" Width="{Binding Width, ElementName=blankCanvas}" Height="{Binding Height, ElementName=blankCanvas}"></Rectangle>
+            <Canvas x:Name="blankCanvas" Width="100" Height="100" SizeChanged="blankCanvas_SizeChanged" PointerMoved="blankCanvas_PointerMoved" Background="Transparent" PointerEntered="blankCanvas_PointerEntered" PointerExited="blankCanvas_PointerExited" PointerReleased="blankCanvas_PointerReleased" Margin="5">
+                <Rectangle x:Name="boundarect" Stroke="#FF0D18F3" Width="{Binding Width, ElementName=blankCanvas}" Height="{Binding Height, ElementName=blankCanvas}"></Rectangle>
                 <Ellipse x:Name="cursorEllipse" Fill="Red" Stroke="#FFFFFF01" Canvas.Left="10" Canvas.Top="10" Width="10" Height="10"></Ellipse>
                 <Path x:Name="paf" Stroke="Black"></Path>
+                <Path x:Name="fillcells" Fill="Purple"></Path>
+                <Path x:Name="borders" Stroke="Gray" Fill="Purple" StrokeThickness="4"></Path>
             </Canvas>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="5">
                 <Button x:Name="calcButton" Content="Calculate" Click="calcButton_Click"></Button>
-                <Button x:Name="resetButton" Content="Reset" Margin="20,0,0,0"></Button>
+                <Button x:Name="resetButton" Content="Reset" Margin="20,0,0,0" Click="resetButton_Click"></Button>
             </StackPanel>
         </StackPanel>
     </Grid>
